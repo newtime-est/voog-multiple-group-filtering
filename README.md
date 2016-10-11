@@ -13,7 +13,9 @@ Firstly load Jquery on your page, then IcanHaz, after that include "ich.Mustache
 The filter works based data attributes in the filter. If these are not added correctly, the filter will not function. To do this the data attribute must consist of data-*code name of the row in voog element table*="*attribute name*".
 Example:
 
+```html
 <li class="js-someclass" data-location="tartu">
   somename
 </li>
+```
 
