@@ -1,7 +1,8 @@
 /*
   Uses voog API, ICanHaz Moustache and jquery
 
-  Clickable filter item has to have a data attribute with the attribute being the table fields code and value being the fields value(ie. data-country="estonia"). "country" being the fields code.
+  Clickable filter item has to have a data attribute with the attribute being the table fields code and value being the fields value(ie. data-country="estonia").
+  "country" being the fields code.
 */
 
 
@@ -12,7 +13,19 @@
     modelID: 1940,
     containerClass: 'ich-elements-list',
     elementClass: 'js-filter-item',
-    activeClass: 'active', //ElementClasses "active" class
+    activeClass: 'active', // ElementClasses "active" class
+    filteringType: 'cont', // Current code only mainly supports cont or eq. Eq can be used for single filtering
+    urlExtra: '&s=element.values.day.$asc&per_page=250', // url only has element_definition_id and include_values as presets. This line allows to add more
+    preappendFunction: function(data) {
+      // Functions run here will activate before the appending happens. Use this for something like formatting raw dates before placing them in DOM.
+    },
+    template: function(data) {
+      //Very important returns the type of icanhaz template.
+      return ich.ichSomeTemplate(data);
+    },
+    callBackFunction: function(){
+      //Functions that run after appending
+    }
   };
 
   $(document).ready(function() {
@@ -94,7 +107,7 @@
   //Core function
   function getFilters(options) {
     var allFilters = window.location.hash.substring(1);
-    if (allFilters === "noFilter") {
+    if (allFilters === "noFilter" || window.location.hash === '') {
       getAllElements(options);
     } else {
       allFilters = getQueryVariables();
@@ -151,8 +164,8 @@
     var elementArray = [];
 
     for (var j = 0; j < currentFilterValues.length; j++) {
-      url = '/admin/api/elements?element_definition_id='+ options.modelID +'&per_page=250&include_values=true&language_code={{ page.language_code }}';
-      url += '&q.element.values.' + currentFiltertype + '.$cont=' + currentFilterValues[j];
+      url = '/admin/api/elements?element_definition_id='+ options.modelID +'&include_values=true&'+ options.urlExtra +'';
+      url += '&q.element.values.' + currentFiltertype + '.$' + options.filteringType + '=' + currentFilterValues[j];
 
       $.ajax({
             url: url,
@@ -190,7 +203,9 @@
     });
     sortObjArray(filteredObjects, 'id');
     filteredObjects = removeDuplicatesFromObjArray(filteredObjects, 'id');
-    $('.'+options.containerClass).empty().append(ich.ichElementsList({items: filteredObjects}));
+    options.preappendFunction(filteredObjects);
+    $('.'+options.containerClass).empty().append(options.template({items: filteredObjects}));
+    options.callBackFunction(filteredObjects);
   }
 
 
@@ -222,8 +237,8 @@
 
       for (var j = 0; j < curFilterValues.length; j++) {
           $('.js-filter-item[data-' + curFilter[0] + '="' + curFilterValues[j] + '"]').addClass(options.activeClass);
-          url = '/admin/api/elements?element_definition_id='+ options.modelID +'&per_page=250&include_values=true&language_code={{ page.language_code }}';
-          url += '&q.element.values.' + curFilter[0] + '.$cont=' + curFilterValues[j];
+          url = '/admin/api/elements?element_definition_id='+ options.modelID +'&per_page=250&include_values=true&'+ options.urlExtra +'';
+          url += '&q.element.values.' + curFilter[0] + '.$' + options.filteringType + '=' + curFilterValues[j];
           $.ajax({
             url: url,
             method: 'get',
@@ -235,7 +250,9 @@
               if (currentResponses === requiredResponses) {
                 sortObjArray(elementObjects, 'id');
                 elementObjects = removeDuplicatesFromObjArray(elementObjects, 'id');
-                $('.'+options.containerClass).append(ich.ichElementsList({items: elementObjects}));
+                options.preappendFunction(elementObjects);
+                $('.'+options.containerClass).append(options.template({items: elementObjects}));
+                options.callBackFunction(elementObjects);
               }
 
             }
@@ -245,13 +262,15 @@
   }
 
   function getAllElements(options) {
-    url = '/admin/api/elements?element_definition_id='+ options.modelID +'&per_page=250&include_values=true&language_code={{ page.language_code }}';
+    url = '/admin/api/elements?element_definition_id='+ options.modelID +'&per_page=250&include_values=true&'+ options.urlExtra +'';
 
     $.ajax({
       url: url,
       method: 'get',
       success: function(elements){
-        $('.'+options.containerClass).empty().append(ich.ichElementsList({items: elements}));
+        options.preappendFunction(elements);
+        $('.'+options.containerClass).empty().append(options.template({items: elements}));
+        options.callBackFunction(elements);
       }
     });
 
